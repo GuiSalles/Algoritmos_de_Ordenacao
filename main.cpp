@@ -4,6 +4,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/time.h>
 
 #define ALGINSERTION 1
 #define ALGSELECTION 2
@@ -13,6 +14,11 @@
 #define ALGQSORT3INS 6
 #define ALGSHELLSORT 7
 #define ALGRECSEL 8
+#define ALGMERGE 9
+#define ALGBUBBLE 10
+#define ALGRDX 11
+#define ALGBKT 12
+#define ALGCOUNT 13
 
 typedef struct alg
 {
@@ -29,6 +35,11 @@ alg_t algvet[] = {
     {ALGQSORT3INS, "q3i"},
     {ALGSHELLSORT, "h"},
     {ALGRECSEL, "rs"},
+    {ALGMERGE, "ms"},
+    {ALGBUBBLE, "bs"},
+    {ALGRDX, "rd"},
+    {ALGBKT, "bk"},
+    {ALGCOUNT, "cs"},
     {0, 0}};
 
 int name2num(char *name)
@@ -122,7 +133,7 @@ void initVector(int *vet, int size)
     // inicializa a parte alocada da vetor com valores aleatorios
     for (i = 0; i < size; i++)
     {
-        vet[i] = (int)(drand48() * size);
+        vet[i] = size - i;
     }
 }
 
@@ -144,57 +155,23 @@ void swap(int *xp, int *yp, sortperf_t *s)
     int temp = *xp;
     *xp = *yp;
     *yp = temp;
-    incmove(s, 3);
 }
 
 // shellsort
 void shellSort(int *A, int n, sortperf_t *s)
 {
-    inccalls(s, 1);
     for (int h = n / 2; h > 0; h /= 2)
     {
         for (int i = h; i < n; i += 1)
         {
             int temp = A[i];
-            incmove(s, 1);
             int j;
             for (j = i; j >= h && A[j - h] > temp; j -= h)
             {
-                inccmp(s, 1);
                 A[j] = A[j - h];
-                incmove(s, 1);
             }
             A[j] = temp;
-            incmove(s, 1);
-            inccmp(s, 1);
         }
-    }
-}
-
-// recursive selection sort
-void recursiveSelectionSort(int arr[], int l, int r, sortperf_t *s)
-{
-    // find the minimum element in the unsorted subarray `[i…n-1]`
-    // and swap it with `arr[i]`
-    int min = l;
-    inccalls(s, 1);
-    for (int j = l + 1; j <= r; j++)
-    {
-        // if `arr[j]` is less, then it is the new minimum
-        inccmp(s, 1);
-        if (arr[j] < arr[min])
-        {
-            min = j; // update the index of minimum element
-        }
-    }
-
-    // swap the minimum element in subarray `arr[i…n-1]` with `arr[i]`
-    if (min != l)
-        swap(&arr[min], &arr[l], s);
-
-    if (l + 1 < r)
-    {
-        recursiveSelectionSort(arr, l + 1, r, s);
     }
 }
 
@@ -203,7 +180,6 @@ void recursiveSelectionSort(int arr[], int l, int r, sortperf_t *s)
 void selectionSort(int arr[], int l, int r, sortperf_t *s)
 {
     int i, j, Min;
-    inccalls(s, 1);
     for (i = l; i < r; i++)
     {
         Min = i;
@@ -211,7 +187,6 @@ void selectionSort(int arr[], int l, int r, sortperf_t *s)
         {
             if (arr[j] < arr[Min])
                 Min = j;
-            inccmp(s, 1);
         }
         if (Min != i)
         {
@@ -223,7 +198,6 @@ void selectionSort(int arr[], int l, int r, sortperf_t *s)
 // insertion sort
 void insertionSort(int v[], int l, int r, sortperf_t *s)
 {
-    inccalls(s, 1);
     int i, j;
     int aux;
 
@@ -231,18 +205,14 @@ void insertionSort(int v[], int l, int r, sortperf_t *s)
     {
         aux = v[i];
         j = i - 1;
-        inccmp(s, 1);
 
         while (j >= l && aux < v[j])
         {
             v[j + 1] = v[j];
             j--;
-            inccmp(s, 1);
-            incmove(s, 1);
         }
 
         v[j + 1] = aux;
-        incmove(s, 2);
     }
 }
 
@@ -262,59 +232,22 @@ int median(int a, int b, int c)
     return b;     // c b a
 }
 
-// quicksort partition using median of 3
-void partition3(int *A, int l, int r, int *i, int *j, sortperf_t *s)
-{
-    inccalls(s, 1);
-    int x;
-    *i = l;
-    *j = r;
-    int mid = (l + r) / 2;
-    x = median(A[l], A[mid], A[r]);
-    do
-    {
-        inccmp(s, 1);
-        while (A[*i] < x)
-        {
-            (*i)++;
-            inccmp(s, 1);
-        }
-        inccmp(s, 1);
-        while (A[*j] > x)
-        {
-            (*j)--;
-            inccmp(s, 1);
-        }
-        if (*i <= *j)
-        {
-            swap(&A[*i], &A[*j], s);
-            (*i)++;
-            (*j)--;
-        }
-    } while (*i <= *j);
-}
-
 // standard quicksort partition
 void partition(int *A, int l, int r, int *i, int *j, sortperf_t *s)
 {
-    inccalls(s, 1);
     int x;
     *i = l;
     *j = r;
     x = A[(*i + *j) / 2];
     do
     {
-        inccmp(s, 1);
         while (x > A[*i])
         {
             (*i)++;
-            inccmp(s, 1);
         }
-        inccmp(s, 1);
         while (x < A[*j])
         {
             (*j)--;
-            inccmp(s, 1);
         }
         if (*i <= *j)
         {
@@ -325,9 +258,68 @@ void partition(int *A, int l, int r, int *i, int *j, sortperf_t *s)
     } while (*i <= *j);
 }
 
+// MergeSort
+
+void merge(int *A, int l, int m, int r, sortperf_t *s)
+{
+    int n1 = m - l + 1;
+    int n2 = r - m;
+
+    int *L = (int *)malloc(n1 * sizeof(int));
+    int *R = (int *)malloc(n2 * sizeof(int));
+
+    for (int i = 0; i < n1; i++)
+        L[i] = A[l + i];
+    for (int j = 0; j < n2; j++)
+        R[j] = A[m + 1 + j];
+
+    int i = 0;
+    int j = 0;
+    int k = l;
+
+    while (i < n1 && j < n2)
+    {
+        if (L[i] <= R[j])
+        {
+            A[k] = L[i];
+            i++;
+        }
+        else
+        {
+            A[k] = R[j];
+            j++;
+        }
+        k++;
+    }
+
+    while (i < n1)
+    {
+        A[k] = L[i];
+        i++;
+        k++;
+    }
+
+    while (j < n2)
+    {
+        A[k] = R[j];
+        j++;
+        k++;
+    }
+}
+
+void mergeSort(int *A, int l, int r, sortperf_t *s)
+{
+    if (l < r)
+    {
+        int meio = l + (r - l) / 2;
+        mergeSort(A, l, meio, s);
+        mergeSort(A, meio + 1, r, s);
+        merge(A, l, meio, r, s);
+    }
+}
+
 void quickSort(int *A, int l, int r, sortperf_t *s)
 {
-    inccalls(s, 1);
     int i = l;
     int j = r;
     partition(A, l, r, &i, &j, s);
@@ -341,73 +333,106 @@ void quickSort(int *A, int l, int r, sortperf_t *s)
     }
 }
 
-// quicksort with median of 3
-void quickSort3(int *A, int l, int r, sortperf_t *s)
+void bubbleSort(int arr[], int n, sortperf_t *s)
 {
-    inccalls(s, 1);
-    int i = l;
-    int j = r;
-    partition3(A, l, r, &i, &j, s);
-    if (l < j)
-    {
-        quickSort3(A, l, j, s);
-    }
-    if (i < r)
-    {
-        quickSort3(A, i, r, s);
-    }
-}
+    int i, j;
 
-// quicksort with insertion for small partitions
-void quickSortIns(int *A, int l, int r, sortperf_t *s)
-{
-    int i = l;
-    int j = r;
-    partition(A, l, r, &i, &j, s);
-    inccalls(s, 1);
-    
-    if (l < j)
+    for (i = 0; i < n - 1; i++)
     {
-        if (j - l <= 50) {
-            insertionSort(A, l, j, s);
-        } else {
-            quickSortIns(A, l, j, s);
-        }
-    }
-    if (i < r)
-    {
-        if (r - i <= 50) {
-            insertionSort(A, i, r, s);
-        } else {
-            quickSortIns(A, i, r, s);   
+        for (j = 1; j < n - i; j++)
+        {
+            if (arr[j] < arr[j - 1])
+            {
+                swap(&arr[j], &arr[j - 1], s);
+            }
         }
     }
 }
 
+// radix sort
+int digit(int num, int k) {
+    return (num >> k) & 1;
+}
 
-
-// quicksort with insertion for small partitions and median of 3
-void quickSort3Ins(int *A, int l, int r, sortperf_t *s)
+void exch(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+void quicksortB(int v[], int l, int r, int w, sortperf_t *s)
 {
-    int i = l;
-    int j = r;
-    partition3(A, l, r, &i, &j, s);
-    inccalls(s, 1);
-    
-    if (l < j)
+    int i = l, j = r;
+    if (r <= l || w > 0)
+        return;
+    while (j != i)
     {
-        if (j - l <= 50) {
-            insertionSort(A, l, j, s);
-        } else {
-            quickSort3Ins(A, l, j, s);
+        while (digit(v[i], w) == 0 && (i < j))
+            i++;
+        while (digit(v[j], w) == 1 && (j > i))
+            j--;
+        exch(v[i], v[j]);
+    }
+    if (digit(v[r], w) == 0)
+        j++;
+    quicksortB(v, l, j - 1, w - 1, s);
+    quicksortB(v, j, r, w - 1, s);
+}
+void radixSort(int v[], int n, sortperf_t *s) {
+    int maxBits = sizeof(int) * 8;
+    quicksortB(v, 0, n - 1, maxBits-1,s);
+}
+
+void countingSort(int *A, int n, int max, sortperf_t *s)
+{
+    int *counts = (int *)calloc(max, sizeof(int));
+    int i, j;
+    for (i = 0; i < n; i++)
+    {
+        counts[A[i]]++;
+    }
+    i = 0;
+    for (j = 0; j < max; j++)
+    {
+        while (counts[j] > 0)
+        {
+            A[i++] = j;
+            counts[j]--;
         }
     }
-    if (i < r)
+}
+
+int getMaxMin(int *A, int n)
+{
+    int maximo = A[0];
+    for (int i = 1; i < n; i++)
     {
-        if (r - i <= 50) {
-            insertionSort(A, i, r, s);
-        } else {
-            quickSort3Ins(A, i, r, s);   
+        if (A[i] > maximo)
+        {
+            maximo = A[i];
+        }
+    }
+    return maximo;
+}
+
+void bucketSort(int *A, int n, sortperf_t *s)
+{
+    int bucket[n + 1];
+
+    const int maximo = getMaxMin(A, n);
+    for (int i = 0; i <= maximo; i++)
+    {
+        bucket[i] = 0;
+    }
+    for (int i = 0; i < n; i++)
+    {
+        bucket[A[i]]++;
+    }
+    for (int i = 0, j = 0; i <= maximo; i++)
+    {
+        while (bucket[i] > 0)
+        {
+            A[j++] = i;
+            bucket[i]--;
         }
     }
 }
@@ -420,15 +445,20 @@ void uso()
     fprintf(stderr, "sortperf\n");
     fprintf(stderr, "\t-z <int>\t(vector size)\n");
     fprintf(stderr, "\t-s <int>\t(initialization seed)\n");
-    fprintf(stderr, "\t-a <s|i|q|q3|qi|q3i|h|rs>\t(algorithm)\n");
+    fprintf(stderr, "\t-a <s|i|q|q3|qi|q3i|h|rs|ms>\t(algorithm)\n");
     fprintf(stderr, "\t    s\tselection\n");
     fprintf(stderr, "\t    i\tinsertion\n");
     fprintf(stderr, "\t    q\tquicksort\n");
     fprintf(stderr, "\t    q3\tquicksort+median3\n");
     fprintf(stderr, "\t    qi\tquicksort+insertion\n");
     fprintf(stderr, "\t    q3i\tquicksort+median3+insertion\n");
-    fprintf(stderr, "\t    h\theapsort\n");
+    fprintf(stderr, "\t    h\tshellsort\n");
     fprintf(stderr, "\t    rs\trecursive selection\n");
+    fprintf(stderr, "\t    ms\tmerge sort\n");
+    fprintf(stderr, "\t    bs\tbubble sort\n");
+    fprintf(stderr, "\t    rd\tradix sort\n");
+    fprintf(stderr, "\t    bk\tbucket sort\n");
+    fprintf(stderr, "\t    cs\tcounting sort\n");
 }
 
 void parse_args(int argc, char **argv, opt_t *opt)
@@ -548,7 +578,23 @@ int main(int argc, char **argv)
     case ALGRECSEL:
         recursiveSelectionSort(vet, 0, opt.size - 1, &s);
         break;
+    case ALGMERGE:
+        mergeSort(vet, 0, opt.size - 1, &s);
+        break;
+    case ALGBUBBLE:
+        bubbleSort(vet, opt.size - 1, &s);
+        break;
+    case ALGRDX:
+        radixSort(vet, opt.size, &s);
+        break;
+    case ALGBKT:
+        bucketSort(vet, opt.size, &s);
+        break;
+    case ALGCOUNT:
+        countingSort(vet, opt.size, opt.size, &s);
+        break;
     }
+
     retp = clock_gettime(CLOCK_MONOTONIC, &endtp);
     clkDiff(inittp, endtp, &restp);
 
